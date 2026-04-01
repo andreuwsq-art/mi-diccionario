@@ -374,7 +374,7 @@ async function loadWords() {
   try {
     const file = await ghGet('/contents/data.json');
     fileSha = file.sha;
-    words = JSON.parse(atob(file.content.replace(/\n/g, '')));
+    words = JSON.parse(decodeURIComponent(escape(atob(file.content.replace(/\n/g, '')))));
     setSyncStatus('');
   } catch (e) {
     if (e.message.includes('404')) {
