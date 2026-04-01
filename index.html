@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Diccionario</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f0e8;
+  --surface: #fffdf7;
+  --ink: #1a1610;
+  --ink-muted: #7a7060;
+  --accent: #c0392b;
+  --accent-light: #f9ede9;
+  --border: #e0d8cc;
+  --shadow: 0 2px 16px rgba(0,0,0,0.07);
+  --tag-lit: #1a4a3a; --tag-lit-bg: #e8f3ee;
+  --tag-tec: #1a2a4a; --tag-tec-bg: #e8edf3;
+  --tag-gen: #4a3a1a; --tag-gen-bg: #f3eee8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+/* SETUP SCREEN */
+#setup-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 24px;
+}
+.setup-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px 28px; max-width: 440px; width: 100%;
+  box-shadow: var(--shadow);
+}
+.setup-card h1 {
+  font-family: 'Playfair Display', serif; font-size: 1.5rem;
+  margin-bottom: 6px; color: var(--ink);
+}
+.setup-card p { font-size: 0.85rem; color: var(--ink-muted); margin-bottom: 24px; line-height: 1.6; }
+.setup-field { margin-bottom: 14px; }
+.setup-field label {
+  display: block; font-size: 0.75rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--ink-muted); margin-bottom: 6px;
+}
+.setup-field input {
+  width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem; color: var(--ink); outline: none; transition: border-color 0.2s;
+}
+.setup-field input:focus { border-color: var(--accent); }
+.setup-hint {
+  font-size: 0.75rem; color: var(--ink-muted); margin-top: 5px; line-height: 1.5;
+}
+.setup-hint a { color: var(--accent); text-decoration: none; }
+.btn-setup {
+  width: 100%; background: var(--accent); color: white; border: none;
+  border-radius: 10px; padding: 12px; font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem; font-weight: 500; cursor: pointer; margin-top: 8px;
+  transition: opacity 0.15s;
+}
+.btn-setup:hover { opacity: 0.88; }
+.setup-error {
+  background: #fdeaea; color: var(--accent); border-radius: 8px;
+  padding: 10px 12px; font-size: 0.82rem; margin-top: 12px; display: none;
+}
+
+/* APP */
+#app { display: none; }
+
+header {
+  background: var(--ink); color: var(--bg);
+  padding: 18px 20px 14px; position: sticky; top: 0; z-index: 100;
+  border-bottom: 3px solid var(--accent);
+}
+.header-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+header h1 { font-family: 'Playfair Display', serif; font-size: 1.4rem; }
+#word-count {
+  font-size: 0.75rem; color: #6a6058;
+  background: #2a2520; padding: 2px 9px; border-radius: 20px;
+}
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+#sync-status { font-size: 0.72rem; color: #6a6058; }
+.btn-settings {
+  background: none; border: none; color: #6a6058;
+  cursor: pointer; font-size: 1rem; padding: 4px; transition: color 0.15s;
+}
+.btn-settings:hover { color: var(--bg); }
+
+.search-wrap { position: relative; margin-bottom: 10px; }
+#search {
+  width: 100%; background: #2a2520; border: 1px solid #3a3530;
+  border-radius: 8px; padding: 10px 14px 10px 36px;
+  color: var(--bg); font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+}
+#search::placeholder { color: #5a5248; }
+#search:focus { border-color: var(--accent); }
+.search-icon {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  color: #5a5248; font-size: 0.85rem; pointer-events: none;
+}
+
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-btn {
+  background: #2a2520; color: #8a8078; border: 1px solid #3a3530;
+  border-radius: 20px; padding: 4px 12px; font-size: 0.75rem;
+  font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s;
+}
+.filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+main { max-width: 720px; margin: 0 auto; padding: 18px 14px 100px; }
+
+.alpha-index {
+  display: flex; flex-wrap: wrap; gap: 3px;
+  margin-bottom: 18px; padding: 10px 12px;
+  background: var(--surface); border-radius: 10px; border: 1px solid var(--border);
+}
+.alpha-btn {
+  background: none; border: none;
+  font-family: 'Playfair Display', serif; font-size: 0.82rem;
+  color: #c0b8b0; cursor: default; padding: 3px 5px;
+  border-radius: 4px; min-width: 20px; text-align: center; transition: all 0.15s;
+}
+.alpha-btn.has { color: var(--ink); font-weight: 700; cursor: pointer; }
+.alpha-btn.has:hover { background: var(--accent-light); color: var(--accent); }
+
+.letter-section { margin-bottom: 4px; }
+.letter-header {
+  font-family: 'Playfair Display', serif; font-size: 1.3rem;
+  color: var(--accent); padding: 4px 0; border-bottom: 1px solid var(--border);
+  margin-bottom: 8px; font-weight: 700;
+}
+
+.word-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 7px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 10px; transition: box-shadow 0.2s; animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; } }
+.word-card:hover { box-shadow: var(--shadow); }
+
+.word-main { flex: 1; min-width: 0; }
+.word-term {
+  font-family: 'Playfair Display', serif; font-size: 1.05rem;
+  font-weight: 700; color: var(--ink); margin-bottom: 3px;
+}
+.word-def { font-size: 0.85rem; color: var(--ink-muted); line-height: 1.5; font-weight: 300; }
+.word-actions { display: flex; gap: 5px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+.tag {
+  font-size: 0.68rem; font-weight: 500; padding: 2px 7px;
+  border-radius: 20px; letter-spacing: 0.02em; text-transform: uppercase;
+}
+.tag-literario { background: var(--tag-lit-bg); color: var(--tag-lit); }
+.tag-tecnico   { background: var(--tag-tec-bg); color: var(--tag-tec); }
+.tag-general   { background: var(--tag-gen-bg); color: var(--tag-gen); }
+
+.btn-icon {
+  background: none; border: none; cursor: pointer; color: var(--ink-muted);
+  padding: 4px; border-radius: 6px; font-size: 0.85rem; transition: all 0.15s; line-height: 1;
+}
+.btn-icon:hover { background: var(--accent-light); color: var(--accent); }
+
+.fab {
+  position: fixed; bottom: 22px; right: 18px;
+  background: var(--accent); color: white; border: none;
+  border-radius: 28px; padding: 13px 20px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500;
+  cursor: pointer; box-shadow: 0 4px 20px rgba(192,57,43,0.38);
+  display: flex; align-items: center; gap: 7px;
+  transition: transform 0.15s, box-shadow 0.15s; z-index: 200;
+}
+.fab:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(192,57,43,0.48); }
+
+/* MODAL */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,8,5,0.55); z-index: 300;
+  align-items: flex-end; justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  padding: 22px 18px 30px; width: 100%; max-width: 720px;
+  animation: slideUp 0.22s ease;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal h2 { font-family: 'Playfair Display', serif; font-size: 1.15rem; margin-bottom: 16px; }
+.form-group { margin-bottom: 12px; }
+.form-group label {
+  display: block; font-size: 0.73rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--ink-muted); margin-bottom: 5px;
+}
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 9px 11px; font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem; color: var(--ink); outline: none; transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent); }
+.form-group textarea { resize: vertical; min-height: 70px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.btn-primary {
+  flex: 1; background: var(--accent); color: white; border: none;
+  border-radius: 10px; padding: 11px; font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+.btn-secondary {
+  background: var(--border); color: var(--ink-muted); border: none;
+  border-radius: 10px; padding: 11px 18px; font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem; cursor: pointer;
+}
+
+.empty { text-align: center; padding: 50px 20px; color: var(--ink-muted); }
+.empty-icon { font-size: 2.2rem; margin-bottom: 10px; }
+.empty h3 { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin-bottom: 5px; color: var(--ink); }
+.empty p { font-size: 0.82rem; font-weight: 300; }
+
+.toast {
+  position: fixed; bottom: 76px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--ink); color: var(--bg);
+  padding: 9px 18px; border-radius: 20px; font-size: 0.82rem;
+  opacity: 0; transition: all 0.28s; z-index: 400; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.spinner {
+  width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white; border-radius: 50%;
+  animation: spin 0.7s linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (min-width: 600px) {
+  .modal-overlay { align-items: center; }
+  .modal { border-radius: 20px; max-width: 460px; }
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>Mi Diccionario</h1>
+    <p>Conectá tu repositorio de GitHub para guardar y sincronizar tus palabras desde cualquier dispositivo.</p>
+
+    <div class="setup-field">
+      <label>Usuario de GitHub</label>
+      <input type="text" id="cfg-user" placeholder="ej. tuusuario" autocomplete="off" autocorrect="off" autocapitalize="off">
+    </div>
+    <div class="setup-field">
+      <label>Nombre del repositorio</label>
+      <input type="text" id="cfg-repo" placeholder="ej. mi-diccionario" autocomplete="off" autocorrect="off" autocapitalize="off">
+    </div>
+    <div class="setup-field">
+      <label>Personal Access Token</label>
+      <input type="password" id="cfg-token" placeholder="ghp_...">
+      <div class="setup-hint">
+        Crealo en <a href="https://github.com/settings/tokens/new" target="_blank">GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</a>. Activá el permiso <strong>repo</strong>.
+      </div>
+    </div>
+
+    <button class="btn-setup" onclick="setupConnect()">Conectar →</button>
+    <div class="setup-error" id="setup-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-top">
+      <h1>Mi Diccionario</h1>
+      <span id="word-count">—</span>
+      <div class="header-right">
+        <span id="sync-status"></span>
+        <button class="btn-settings" title="Desconectar" onclick="disconnect()">⚙</button>
+      </div>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Buscar palabra o definición..." autocomplete="off" autocorrect="off">
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-cat="all">Todas</button>
+      <button class="filter-btn" data-cat="literario">Literario</button>
+      <button class="filter-btn" data-cat="tecnico">Técnico</button>
+      <button class="filter-btn" data-cat="general">General</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="alpha-index" id="alpha-index"></div>
+    <div id="words-container"><div class="empty"><div class="empty-icon">⏳</div><h3>Cargando...</h3></div></div>
+  </main>
+
+  <button class="fab" onclick="openModal()">＋ Agregar</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <h2 id="modal-title">Nueva palabra</h2>
+    <div class="form-group">
+      <label>Palabra</label>
+      <input type="text" id="input-word" placeholder="ej. acervo, latencia..." autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Definición</label>
+      <textarea id="input-def" placeholder="Significado breve y claro..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Categoría</label>
+      <select id="input-cat">
+        <option value="general">General</option>
+        <option value="literario">Literario</option>
+        <option value="tecnico">Técnico</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" id="btn-save" onclick="saveWord()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const CFG_KEY = 'diccionario_cfg';
+let cfg = {};
+let words = [];
+let fileSha = null;
+let editingId = null;
+let currentFilter = 'all';
+let currentSearch = '';
+
+function loadCfg() {
+  try { cfg = JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch { cfg = {}; }
+}
+
+function saveCfg() { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
+
+function disconnect() {
+  if (!confirm('¿Desconectar este dispositivo? (tus palabras quedan en GitHub)')) return;
+  localStorage.removeItem(CFG_KEY);
+  location.reload();
+}
+
+// ── GITHUB API ───────────────────────────────────────────────────────────────
+const apiBase = () => `https://api.github.com/repos/${cfg.user}/${cfg.repo}`;
+const headers = () => ({
+  'Authorization': `token ${cfg.token}`,
+  'Accept': 'application/vnd.github.v3+json',
+  'Content-Type': 'application/json'
+});
+
+async function ghGet(path) {
+  const r = await fetch(apiBase() + path, { headers: headers() });
+  if (!r.ok) throw new Error(`GitHub ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+async function loadWords() {
+  setSyncStatus('Sincronizando...');
+  try {
+    const file = await ghGet('/contents/data.json');
+    fileSha = file.sha;
+    words = JSON.parse(atob(file.content.replace(/\n/g, '')));
+    setSyncStatus('');
+  } catch (e) {
+    if (e.message.includes('404')) {
+      // File doesn't exist yet, start empty
+      words = [];
+      fileSha = null;
+      setSyncStatus('');
+    } else {
+      setSyncStatus('⚠ Sin conexión');
+      toast('Error al cargar desde GitHub.');
+    }
+  }
+  render();
+}
+
+async function saveWords() {
+  setSyncStatus('Guardando...');
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(words, null, 2))));
+  const body = {
+    message: `Update data.json`,
+    content,
+    ...(fileSha ? { sha: fileSha } : {})
+  };
+  const r = await fetch(apiBase() + '/contents/data.json', {
+    method: 'PUT', headers: headers(), body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  const data = await r.json();
+  fileSha = data.content.sha;
+  setSyncStatus('✓ Guardado');
+  setTimeout(() => setSyncStatus(''), 2500);
+}
+
+function setSyncStatus(msg) {
+  document.getElementById('sync-status').textContent = msg;
+}
+
+// ── SETUP ────────────────────────────────────────────────────────────────────
+async function setupConnect() {
+  const user  = document.getElementById('cfg-user').value.trim();
+  const repo  = document.getElementById('cfg-repo').value.trim();
+  const token = document.getElementById('cfg-token').value.trim();
+  const errEl = document.getElementById('setup-error');
+  errEl.style.display = 'none';
+
+  if (!user || !repo || !token) {
+    errEl.textContent = 'Completá todos los campos.';
+    errEl.style.display = 'block'; return;
+  }
+
+  cfg = { user, repo, token };
+  // Verify token works
+  try {
+    const r = await fetch(`https://api.github.com/repos/${user}/${repo}`, { headers: headers() });
+    if (r.status === 404) throw new Error('Repositorio no encontrado. Verificá el usuario y el nombre del repo.');
+    if (r.status === 401) throw new Error('Token inválido o sin permisos.');
+    if (!r.ok) throw new Error(`Error ${r.status}`);
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block'; return;
+  }
+
+  saveCfg();
+  startApp();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+function startApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadWords();
+}
+
+loadCfg();
+if (cfg.user && cfg.repo && cfg.token) {
+  startApp();
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  document.getElementById('word-count').textContent = `${words.length} palabra${words.length !== 1 ? 's' : ''}`;
+  renderAlpha();
+  renderWords();
+}
+
+function filtered() {
+  return words.filter(w => {
+    const matchCat = currentFilter === 'all' || w.cat === currentFilter;
+    const q = currentSearch.toLowerCase();
+    return matchCat && (!q || w.word.toLowerCase().includes(q) || w.def.toLowerCase().includes(q));
+  }).sort((a, b) => a.word.localeCompare(b, 'es'));
+}
+
+function renderAlpha() {
+  const available = new Set(filtered().map(w => w.word[0]?.toUpperCase()));
+  document.getElementById('alpha-index').innerHTML =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l =>
+      `<button class="alpha-btn ${available.has(l) ? 'has' : ''}"
+        ${available.has(l) ? `onclick="scrollToLetter('${l}')"` : ''}>${l}</button>`
+    ).join('');
+}
+
+function renderWords() {
+  const list = filtered();
+  const container = document.getElementById('words-container');
+  if (!list.length) {
+    container.innerHTML = `<div class="empty">
+      <div class="empty-icon">📖</div>
+      <h3>${currentSearch ? 'Sin resultados' : 'Tu diccionario está vacío'}</h3>
+      <p>${currentSearch ? 'Probá con otro término.' : 'Tocá el botón rojo para agregar tu primera palabra.'}</p>
+    </div>`; return;
+  }
+  const groups = {};
+  list.forEach(w => { const l = w.word[0]?.toUpperCase() || '#'; (groups[l] = groups[l] || []).push(w); });
+
+  container.innerHTML = Object.keys(groups).sort().map(letter => `
+    <div class="letter-section" id="letter-${letter}">
+      <div class="letter-header">${letter}</div>
+      ${groups[letter].map(w => `
+        <div class="word-card">
+          <div class="word-main">
+            <div class="word-term">${hl(w.word)}</div>
+            <div class="word-def">${hl(w.def)}</div>
+          </div>
+          <div class="word-actions">
+            <span class="tag tag-${w.cat}">${w.cat}</span>
+            <button class="btn-icon" onclick="editWord('${w.id}')" title="Editar">✏️</button>
+            <button class="btn-icon" onclick="deleteWord('${w.id}')" title="Eliminar">🗑</button>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function hl(text) {
+  if (!currentSearch) return text;
+  return text.replace(new RegExp(`(${currentSearch})`, 'gi'),
+    '<mark style="background:#fde9a0;border-radius:2px;padding:0 1px">$1</mark>');
+}
+
+function scrollToLetter(l) {
+  document.getElementById(`letter-${l}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── CRUD ─────────────────────────────────────────────────────────────────────
+function openModal(id = null) {
+  editingId = id;
+  document.getElementById('modal-title').textContent = id ? 'Editar palabra' : 'Nueva palabra';
+  if (id) {
+    const w = words.find(x => x.id === id);
+    document.getElementById('input-word').value = w.word;
+    document.getElementById('input-def').value = w.def;
+    document.getElementById('input-cat').value = w.cat;
+  } else {
+    document.getElementById('input-word').value = '';
+    document.getElementById('input-def').value = '';
+    document.getElementById('input-cat').value = 'general';
+  }
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('input-word').focus(), 100);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); editingId = null; }
+function handleOverlayClick(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+async function saveWord() {
+  const word = document.getElementById('input-word').value.trim();
+  const def  = document.getElementById('input-def').value.trim();
+  const cat  = document.getElementById('input-cat').value;
+  if (!word || !def) { toast('Completá la palabra y su definición.'); return; }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Guardando';
+
+  if (editingId) {
+    const i = words.findIndex(x => x.id === editingId);
+    words[i] = { ...words[i], word, def, cat };
+  } else {
+    words.push({ id: Date.now().toString(), word, def, cat });
+  }
+
+  try {
+    await saveWords();
+    closeModal();
+    render();
+    toast(editingId ? 'Palabra actualizada.' : '¡Palabra guardada!');
+  } catch {
+    toast('Error al guardar en GitHub. Revisá tu conexión.');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Guardar';
+}
+
+function editWord(id) { openModal(id); }
+
+async function deleteWord(id) {
+  if (!confirm('¿Eliminar esta palabra?')) return;
+  words = words.filter(w => w.id !== id);
+  try {
+    await saveWords();
+    render();
+    toast('Palabra eliminada.');
+  } catch {
+    toast('Error al eliminar. Revisá tu conexión.');
+    await loadWords();
+  }
+}
+
+// ── EVENTS ───────────────────────────────────────────────────────────────────
+document.getElementById('search').addEventListener('input', e => {
+  currentSearch = e.target.value.trim(); render();
+});
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.cat; render();
+  });
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
